@@ -10,7 +10,8 @@ It's a React + TypeScript single-page app covering three independent features, e
 
 ## Feature 1 — DEX Analytics Dashboard
 
-Compares **Hyperliquid, Lighter, and Aster** side by side on the fundamentals that determine where a trader should actually route order flow: **TVL, volume, revenue, capital efficiency, and trading costs.**
+Compares **Hyperliquid, Lighter, and Aster** fundamentals such as **TVL, volume, revenue, capital efficiency, and trading costs.** 
+Compares the trading costs of each exchange
 
 - **Per-DEX fundamentals** — TVL (line), Volume and Revenue (bar) charts per exchange, with selectable granularity (Daily/Weekly/Monthly/Quarterly/Yearly) and a zoom slider.
 - **Cross-DEX comparison** — TVL, volume, capital efficiency, and 30-day revenue charted across all three exchanges at once, plus a "Fastest Growing DEX" callout.
