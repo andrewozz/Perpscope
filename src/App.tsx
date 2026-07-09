@@ -3,7 +3,8 @@ import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import DashboardPage from './features/dashboard/DashboardPage';
 import ScannerPage from './features/scanner/ScannerPage';
-import EnginePage from './features/engine/EnginePage';
+// import EnginePage from './features/engine/EnginePage';
+import MarketAnalyticsPage from './features/market_analytics/MarketAnalyticsPage';
 
 function App() {
   return (
@@ -13,9 +14,10 @@ function App() {
         <Topbar />
         <main className="flex-1 overflow-y-auto bg-[#05070d]">
           <Routes>
-            <Route path="/" element={<DashboardPage />} />
+            <Route path="/" element={<MarketAnalyticsPage />} />
+            <Route path="/dex-comparison" element={<DashboardPage />} />
             <Route path="/scanner" element={<ScannerPage />} />
-            <Route path="/engine" element={<EnginePage />} />
+            {/* <Route path="/engine" element={<EnginePage />} /> */}
           </Routes>
         </main>
       </div>

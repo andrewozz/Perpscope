@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom';
 
 const links = [
-  { to: '/', label: 'Dashboard', icon: GridIcon },
+  { to: '/', label: 'Market Analytics', icon: ChartIcon  },
   { to: '/scanner', label: 'Arb Scanner', icon: ScanIcon },
-  { to: '/engine', label: 'Regime Engine', icon: PulseIcon },
+  // { to: '/engine', label: 'Regime Engine', icon: PulseIcon },
+  { to: '/dex-comparison', label: 'Dex Comparison', icon: GridIcon },
 ];
 
 function GridIcon() {
@@ -37,6 +38,17 @@ function PulseIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </svg>
+  );
+}
+
+function ChartIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <path d="M2.5 2.5v13h13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="5" y="9" width="2.4" height="4" rx="0.5" stroke="currentColor" strokeWidth="1.3" />
+      <rect x="9" y="6.5" width="2.4" height="6.5" rx="0.5" stroke="currentColor" strokeWidth="1.3" />
+      <rect x="13" y="4.5" width="2.4" height="8.5" rx="0.5" stroke="currentColor" strokeWidth="1.3" />
     </svg>
   );
 }

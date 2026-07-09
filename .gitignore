@@ -22,3 +22,20 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# PerpScope ETL secrets (never commit these)
+ETL/.env
+ETL/secrets/*
+!ETL/secrets/README.md
+ETL/**/*-key.json
+ETL/**/*.credentials.json
+
+# PerpScope ETL Python/Jupyter artifacts
+ETL/**/__pycache__/
+ETL/.ipynb_checkpoints/
+
+# dbt build artifacts (auto-generated every run -- never hand-edited)
+ETL/dbt/target/
+ETL/dbt/logs/
+ETL/dbt/dbt_packages/
+ETL/dbt/.user.yml

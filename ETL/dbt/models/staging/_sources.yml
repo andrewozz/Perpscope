@@ -1,0 +1,50 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: perpscope_raw
+    description: >
+      Landing zone -- API responses close to as-received (typed, but no joins
+      or business logic). Populated by ETL/extract_load/main.py (Phase 3).
+    tables:
+      - name: raw_hl_asset_ctxs
+        description: "One row per Hyperliquid perp asset per day: price, OI, 24h volume, funding."
+        loaded_at_field: _loaded_at
+        freshness:
+          warn_after: { count: 26, period: hour }
+          error_after: { count: 48, period: hour }
+
+      - name: raw_hl_candles
+        description: "Daily OHLCV candles per asset, 40-day rolling re-pull."
+        loaded_at_field: _loaded_at
+        freshness:
+          warn_after: { count: 26, period: hour }
+          error_after: { count: 48, period: hour }
+
+      - name: raw_hl_leaderboard
+        description: "Top-150-by-30d-PnL trader cohort buffer, re-ranked client-side."
+        loaded_at_field: _loaded_at
+        freshness:
+          warn_after: { count: 26, period: hour }
+          error_after: { count: 48, period: hour }
+
+      - name: raw_hl_positions
+        description: "Open positions for cohort traders (one row per trader per coin held)."
+        loaded_at_field: _loaded_at
+        freshness:
+          warn_after: { count: 26, period: hour }
+          error_after: { count: 48, period: hour }
+
+      - name: raw_cg_markets
+        description: "CoinGecko top-500-by-market-cap universe."
+        loaded_at_field: _loaded_at
+        freshness:
+          warn_after: { count: 26, period: hour }
+          error_after: { count: 48, period: hour }
+
+      - name: raw_feargreed
+        description: "Alternative.me Fear & Greed index, full history re-pulled daily."
+        loaded_at_field: _loaded_at
+        freshness:
+          warn_after: { count: 26, period: hour }
+          error_after: { count: 48, period: hour }

@@ -1,0 +1,25 @@
+name: "perpscope"
+version: "1.0.0"
+config-version: 2
+
+profile: perpscope
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  perpscope:
+    staging:
+      +materialized: view
+      +schema: perpscope_staging
+    intermediate:
+      +materialized: view
+      +schema: perpscope_staging
+    marts:
+      +materialized: table
+      +schema: perpscope_marts
+
+seeds:
+  perpscope:
+    +schema: perpscope_staging # seeds are static reference tables, live alongside staging

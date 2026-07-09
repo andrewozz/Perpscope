@@ -12,7 +12,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8 px-6 py-8">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-100">DEX Analytics Dashboard</h1>
+        <h1 className="text-2xl font-semibold text-slate-100">DEX Comparison</h1>
         <p className="mt-1 text-sm text-slate-400">
           Live TVL, volume, and revenue across Hyperliquid, Lighter, and Aster, sourced from{' '}
           <a href="https://defillama.com" target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline">
