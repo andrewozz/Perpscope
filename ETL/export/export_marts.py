@@ -46,14 +46,20 @@ EXPORTS: dict[str, str] = {
             SELECT MAX(snapshot_date) FROM `{PROJECT_MARTS}.fct_asset_positioning_daily`
         )
     """,
-    "traders": f"""
+    "active_traders": f"""
+        -- The smart-money cohort: top-100 wallets by a 2-stage risk-adjusted
+        -- `smart_score` (Sharpe / profit factor / max drawdown / ROI / PnL /
+        -- volume -> percentile-ranked, weighted, confidence-shrunk). The whole
+        -- selection happens in the extract phase (extractors/smart_money.py, see
+        -- "Smart wallets leaderboard.ipynb"), so in_cohort is already the final
+        -- cohort. We sort by smart_score so the strongest wallets lead.
         SELECT *
         FROM `{PROJECT_MARTS}.fct_trader_daily`
         WHERE snapshot_date = (
             SELECT MAX(snapshot_date) FROM `{PROJECT_MARTS}.fct_trader_daily`
         )
         AND in_cohort
-        ORDER BY pnl_30d_usd DESC
+        ORDER BY smart_score DESC
     """,
     "trader_positions": f"""
         SELECT *

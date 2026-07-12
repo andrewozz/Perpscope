@@ -46,7 +46,7 @@ export default function MarketAnalyticsPage() {
           <MarketStructureSection fearGreed={data.fearGreed} />
           <OpenInterestSection assetMetrics={data.assetMetrics} />
           <SmartMoneySection
-            traders={data.traders}
+            activeTraders={data.activeTraders}
             traderPositions={data.traderPositions}
             positioning={data.positioning}
           />

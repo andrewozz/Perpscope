@@ -13,7 +13,7 @@ import argparse
 import json
 import time
 
-from .extractors import coingecko, feargreed, hyperliquid
+from .extractors import coingecko, feargreed, hyperliquid, smart_money
 
 
 def _summarize(name: str, records: list[dict], elapsed: float) -> None:
@@ -40,12 +40,18 @@ def run(dry_run: bool, limit_coins: int | None) -> dict[str, list[dict]]:
     _summarize("hl_candles", candles, time.time() - t0)
     results["hl_candles"] = candles
 
+    # Smart-money cohort: 2-stage risk-adjusted ranking (Stage 1 leaderboard
+    # prefilter + Stage 2 per-wallet equity-curve scoring) -> the final top-100
+    # cohort with smart_score + metrics. See extractors/smart_money.py.
     t0 = time.time()
-    leaderboard = hyperliquid.fetch_leaderboard_cohort()
+    print("\n[smart_money] running 2-stage cohort ranking...")
+    leaderboard = smart_money.fetch_smart_money_cohort()
     _summarize("hl_leaderboard", leaderboard, time.time() - t0)
     results["hl_leaderboard"] = leaderboard
 
-    cohort_addrs = [r["trader_address"] for r in leaderboard if r["in_cohort"]]
+    # Fetch current open positions for the cohort only (net positioning + top
+    # holdings). The cohort is already selected, so this is COHORT_SIZE calls.
+    cohort_addrs = [r["trader_address"] for r in leaderboard]
     t0 = time.time()
     positions = hyperliquid.fetch_positions(cohort_addrs)
     _summarize("hl_positions", positions, time.time() - t0)

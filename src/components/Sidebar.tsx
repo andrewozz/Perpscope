@@ -28,19 +28,19 @@ function ScanIcon() {
   );
 }
 
-function PulseIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-      <path
-        d="M2 9.5h3l1.5-4 2.5 7 2-5.5 1.5 2.5H16"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+// function PulseIcon() {
+//   return (
+//     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+//       <path
+//         d="M2 9.5h3l1.5-4 2.5 7 2-5.5 1.5 2.5H16"
+//         stroke="currentColor"
+//         strokeWidth="1.4"
+//         strokeLinecap="round"
+//         strokeLinejoin="round"
+//       />
+//     </svg>
+//   );
+// }
 
 function ChartIcon() {
   return (

@@ -190,8 +190,9 @@ part of the automated warehouse. Warm-up: `regime = 'Unknown'` until enough hist
 ### `fct_asset_positioning_daily`
 **One per-asset daily fact for the smart-money cohort — feeds two charts** (net positioning
 stacked bar, daily inflow/outflow).
-**Grain:** one row per `(coin, snapshot_date)` — every asset the top-100 cohort holds, all days.
-**Cohort:** the **top 100 addresses by 30-day PnL** (definitional universe; see `fct_trader_daily`).
+**Grain:** one row per `(coin, snapshot_date)` — every asset the cohort holds, all days.
+**Cohort:** the **top-100 smart-money wallets by `smart_score`** (2-stage risk-adjusted ranking;
+definitional universe — see `fct_trader_daily`).
 
 | Column | Definition | Used by |
 |---|---|---|
@@ -221,24 +222,41 @@ bar). Computed for **all** held assets; the client sorts by `pct_long` (net posi
 separately; the simpler as-is diff is acceptable if documented.
 
 ### `fct_trader_daily`
-**Feeds:** top-100 trader stats table (Dashboard 3).
+**Feeds:** smart-money leaderboard (Dashboard 3).
 **Grain:** one row per `(trader_address, snapshot_date)`.
 | Column | Definition |
 |---|---|
 | `trader_address` | wallet |
 | `snapshot_date` | day |
-| `pnl_30d_usd` | 30-day PnL (leaderboard `month` window) — client sorts by this |
-| `volume_30d_usd` | 30-day traded volume |
+| `smart_score` | **0–1 composite ranking score** (client sorts by this) — see below |
+| `sharpe_30d` | annualised risk-adjusted return of daily returns (mean/σ × √365) |
+| `profit_factor_30d` | gross up-day P&L ÷ gross down-day P&L over the 30d equity curve (cap 5) |
+| `max_drawdown_30d` | worst peak-to-trough of the 30d equity curve (negative; 0 = none, −1 = wiped out) |
+| `roi_30d` / `pnl_30d_usd` / `volume_30d_usd` | 30-day return / PnL / traded volume (leaderboard `month`) |
+| `win_rate_days_30d` | fraction of days with positive trading P&L |
+| `volatility_30d` | annualised daily-return σ |
 | `account_value_usd` | current account value |
-| `n_open_positions` | count of open positions that day |
-| `gross_exposure_usd` | `sum(position_value_usd)` across positions |
-| `net_exposure_usd` | `sum(signed_notional_usd)` (long − short) |
-| `in_cohort` | TRUE if in the top-100-by-30d-PnL set that day (definitional filter) |
+| `alltime_pnl_usd` / `alltime_roi` | full-history PnL / ROI (leaderboard `allTime`) |
+| `n_obs` | daily equity-curve points used (confidence input) |
+| `composite` / `confidence` | the pre-shrink blend and the `clip(n_obs/21, .3, 1)` confidence weight |
+| `stage1_rank_pnl` | where the wallet ranked by raw 30d PnL (shows the re-rank effect) |
+| `n_open_positions` / `gross_exposure_usd` / `net_exposure_usd` | current open-book aggregates |
+| `in_cohort` | TRUE for all loaded wallets (they ARE the cohort — selected in Python) |
 
-**Logic:** pull the full leaderboard, rank by `windowPerformances.month.pnl`, flag the top 100
-with `in_cohort = TRUE` (we can also store the wider set for context). The client filters
-`in_cohort` and sorts by `pnl_30d_usd` — no stored `rank` needed. Some top traders hold 0
-positions (all-cash) → `n_open_positions = 0`; that's expected.
+**Logic — the cohort is a 2-stage risk-adjusted ranking, computed in the EXTRACT phase**
+(`extract_load/extractors/smart_money.py`; full formulas in `ETL/Smart wallets leaderboard.ipynb`),
+**not** a naive "sort by 30d PnL" (which just rewards account size and floods the top with
+passive holders / stale accounts):
+- **Stage 1** (free, whole leaderboard): drop the `-500.0` sentinel, require `accountValue > 0`
+  AND `volume_30d > 0`, sort by 30d PnL, keep the top `SHORTLIST_SIZE` (500).
+- **Stage 2** (one `portfolio` call each): build the 30-day daily equity curve → Sharpe,
+  profit factor, max drawdown, ROI, win-rate; gate on `n_obs ≥ 10`.
+- **Score:** percentile-rank each of 6 metrics, weight (70% skill: Sharpe+MaxDD+PF+ROI, 30%
+  size: PnL+Volume), `composite × confidence` = `smart_score`; take the top `COHORT_SIZE` (100).
+
+Because selection happens in Python, every loaded row is the cohort (`in_cohort = TRUE`); dbt
+only joins current positions and passes `smart_score`/metrics through. The client sorts by
+`smart_score`. Some wallets hold 0 positions right now → `n_open_positions = 0` (expected).
 
 ### `fct_trader_positions`
 **Feeds:** the expandable "positions" detail under each trader (Dashboard 3), and is the source
@@ -262,7 +280,7 @@ Every chart is a **sort/filter of one clean table** — no chart-specific tables
 | 2 Capital Rotation | OI dominance treemap | `fct_asset_metrics_daily` | latest day, `oi_dominance` (area) + `oi_change_24h_pct` (color) |
 | 2 | Top OI movers (7d) | `fct_asset_metrics_daily` | latest day, sort `oi_change_7d_usd` desc, take 5, show `price_change_7d_pct` |
 | 2 | OI/mcap leverage bar | `fct_asset_metrics_daily` | latest day, sort `oi_mcap_ratio` desc, take 5 |
-| 3 Smart Money | Top-100 trader stats + positions | `fct_trader_daily` (+ `fct_trader_positions`) | filter `in_cohort`, sort `pnl_30d_usd` desc |
+| 3 Smart Money | Smart-money leaderboard + positions | `fct_trader_daily` (+ `fct_trader_positions`) | filter `in_cohort`, sort `smart_score` desc |
 | 3 | Net positioning stacked bar | `fct_asset_positioning_daily` | latest day, sort `pct_long` desc, take 10 |
 | 3 | Daily inflow/outflow | `fct_asset_positioning_daily` | latest day, filter `market_cap_rank ≤ 10`, show `inflow_usd`/`inflow_pct` |
 

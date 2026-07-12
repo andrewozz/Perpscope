@@ -11,6 +11,11 @@ import {
 } from './types';
 import { formatCompactUsd } from '../../utils/format';
 
+// null-safe metric formatters for the leaderboard
+const fmtNum = (v: number | null, dp: number) => (v == null ? '—' : v.toFixed(dp));
+const fmtPctSigned = (v: number | null, dp: number) =>
+  v == null ? '—' : `${v >= 0 ? '+' : ''}${(v * 100).toFixed(dp)}%`;
+
 interface TopHolding {
   coin: string;
   direction: string;
@@ -30,17 +35,20 @@ function buildTopHoldings(positions: TraderPositionRow[]): Map<string, TopHoldin
 }
 
 export default function SmartMoneySection({
-  traders,
+  activeTraders,
   traderPositions,
   positioning,
 }: {
-  traders: TraderRow[];
+  activeTraders: TraderRow[];
   traderPositions: TraderPositionRow[];
   positioning: PositioningRow[];
 }) {
-  // show the whole cohort (the export already filters to in_cohort = top 100 by 30d PnL)
-  const topTraders = traders;
+  // The export already filters to in_cohort = active traders (real 30d volume
+  // or an open position) ranked by 30d PnL -- see int_active_cohort.sql. Cohort
+  // size is dynamic (however many candidates turned out active, capped at 100),
+  // not a fixed 100, so we read the real count instead of hardcoding it.
   const topHoldings = buildTopHoldings(traderPositions);
+  const cohortSize = positioning[0]?.cohort_size ?? activeTraders.length;
 
   const posData = [...positioning]
     .sort((a, b) => b.pct_long - a.pct_long)
@@ -57,40 +65,66 @@ export default function SmartMoneySection({
       <div className="mb-4">
         <h2 className="text-lg font-semibold text-slate-100">3 · Smart Money Analytics</h2>
         <p className="mt-0.5 text-sm text-slate-500">
-          What the top 100 traders (by 30-day PnL) are actually doing with their capital.
+          The {cohortSize} smartest wallets — ranked by risk-adjusted skill, not just raw PnL — and what they hold.
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        {/* Trader leaderboard — real */}
+        {/* Smart-money leaderboard — real, ranked by smart_score */}
         <InsightCard
-          title="Top Trader Leaderboard"
-          subtitle="Live · all 100 traders by 30-day PnL · scroll → for more columns"
-          metric="The 100 most profitable Hyperliquid traders over the trailing 30 days — their realised PnL, traded volume, account size, open-position count and their single largest current holding (the coin, direction and notional size of their biggest bet)."
-          insight="Watch the 'Top holding' column: when many of the best traders' biggest bets stack on the same coin and direction, that's a high-conviction crowd signal. Combine with 30d PnL to weight it by who's actually been right."
+          title="Smart-Money Leaderboard"
+          subtitle={`Live · ${activeTraders.length} wallets ranked by Smart Score · scroll → for all metrics`}
+          metric="A 2-stage ranking of Hyperliquid wallets. Stage 1 shortlists the top 500 by 30d PnL (active, real capital). Stage 2 scores each on its 30-day equity curve — Sharpe (risk-adjusted return), profit factor, max drawdown, ROI — blended 70% skill / 30% size into a percentile Smart Score (0–100), shrunk toward 0 when the track record is short."
+          insight="Rank by skill, not size: a whale with huge PnL but a −60% drawdown scores below a smaller wallet with a clean Sharpe. When several top-Score wallets crowd the same 'Top holding', that's your highest-conviction signal — these are the accounts with a proven, risk-controlled edge, not one lucky month."
           className="lg:row-span-2"
         >
-          <div className="max-h-[440px] overflow-auto">
-            <table className="w-full min-w-[720px] text-sm">
+          {/* Fixed height matched to the stacked Net Positioning + Inflow cards
+              beside it (a CSS Grid row-span-2 cell grows to fit its tallest
+              content, so h-full alone causes runaway growth from the 86-row
+              table -- pin it to the sibling column's real combined height
+              instead so it visually fills the space and scrolls internally). */}
+          <div className="h-[800px] overflow-auto">
+            <table className="w-full min-w-[880px] text-sm">
               <thead className="sticky top-0 z-10 bg-slate-900 text-xs text-slate-500">
                 <tr className="border-b border-slate-800">
                   <th className="py-2 pl-1 pr-2 text-left font-medium">#</th>
                   <th className="py-2 pr-3 text-left font-medium">Trader</th>
-                  <th className="py-2 pr-3 text-left font-medium">Top holding</th>
+                  <th className="py-2 pr-3 text-left font-medium">Score</th>
+                  <th className="py-2 pr-3 text-right font-medium" title="Annualised risk-adjusted return (mean/σ of daily returns)">Sharpe</th>
+                  <th className="py-2 pr-3 text-right font-medium" title="Gross up-day P&L ÷ gross down-day P&L (capped at 5)">PF</th>
+                  <th className="py-2 pr-3 text-right font-medium" title="Worst peak-to-trough drop of the 30d equity curve">Max DD</th>
+                  <th className="py-2 pr-3 text-right font-medium">ROI</th>
                   <th className="py-2 pr-3 text-right font-medium">30d PnL</th>
-                  <th className="py-2 pr-3 text-right font-medium">30d Volume</th>
-                  <th className="py-2 pr-3 text-right font-medium">Account</th>
+                  <th className="py-2 pr-3 text-left font-medium">Top holding</th>
                   <th className="py-2 pl-2 pr-1 text-right font-medium">Pos.</th>
                 </tr>
               </thead>
               <tbody>
-                {topTraders.map((t, i) => {
+                {activeTraders.map((t, i) => {
                   const hold = topHoldings.get(t.trader_address);
+                  const score = (t.smart_score ?? 0) * 100;
                   return (
                     <tr key={t.trader_address} className="border-b border-slate-800/50 hover:bg-slate-800/30">
                       <td className="py-2 pl-1 pr-2 text-slate-600">{i + 1}</td>
                       <td className="py-2 pr-3 font-mono text-xs text-slate-300">
                         {t.display_name ?? truncAddr(t.trader_address)}
+                      </td>
+                      <td className="py-2 pr-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 w-10 shrink-0 overflow-hidden rounded-full bg-slate-800">
+                            <div className="h-full rounded-full bg-emerald-400" style={{ width: `${Math.min(score, 100)}%` }} />
+                          </div>
+                          <span className="tabular-nums font-semibold text-slate-200">{score.toFixed(0)}</span>
+                        </div>
+                      </td>
+                      <td className="py-2 pr-3 text-right tabular-nums text-slate-300">{fmtNum(t.sharpe_30d, 1)}</td>
+                      <td className="py-2 pr-3 text-right tabular-nums text-slate-300">{fmtNum(t.profit_factor_30d, 2)}</td>
+                      <td className="py-2 pr-3 text-right tabular-nums text-rose-400">{fmtPctSigned(t.max_drawdown_30d, 0)}</td>
+                      <td className={`py-2 pr-3 text-right tabular-nums ${(t.roi_30d ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {fmtPctSigned(t.roi_30d, 0)}
+                      </td>
+                      <td className="py-2 pr-3 text-right font-semibold tabular-nums text-emerald-400">
+                        {formatCompactUsd(t.pnl_30d_usd)}
                       </td>
                       <td className="py-2 pr-3">
                         {hold ? (
@@ -111,15 +145,6 @@ export default function SmartMoneySection({
                           <span className="text-xs text-slate-600">— cash</span>
                         )}
                       </td>
-                      <td className="py-2 pr-3 text-right font-semibold tabular-nums text-emerald-400">
-                        {formatCompactUsd(t.pnl_30d_usd)}
-                      </td>
-                      <td className="py-2 pr-3 text-right tabular-nums text-slate-400">
-                        {formatCompactUsd(t.volume_30d_usd)}
-                      </td>
-                      <td className="py-2 pr-3 text-right tabular-nums text-slate-400">
-                        {formatCompactUsd(t.account_value_usd)}
-                      </td>
                       <td className="py-2 pl-2 pr-1 text-right tabular-nums text-slate-400">{t.n_open_positions}</td>
                     </tr>
                   );
@@ -132,8 +157,8 @@ export default function SmartMoneySection({
         {/* Net positioning — real */}
         <InsightCard
           title="Net Positioning by Asset"
-          subtitle="Live · % of top traders long / short / flat"
-          metric="For each asset, the share of the 100 smart-money traders currently net-long, net-short, or not involved. Ranked by the most-long assets."
+          subtitle="Live · % of smart-money wallets long / short / flat"
+          metric={`For each asset, the share of the ${cohortSize} smart-money wallets currently net-long, net-short, or not involved. Ranked by the most-long assets.`}
           insight="A lopsided long consensus shows where conviction is — but an extreme skew is also crowded, and can unwind fast. 'Not involved' reveals what the pros are avoiding."
         >
           <ResponsiveContainer width="100%" height={300}>
@@ -163,7 +188,7 @@ export default function SmartMoneySection({
         <InsightCard
           title="Smart Money Flows (24h)"
           subtitle="Net capital the cohort added / cut, by asset"
-          metric="The day-over-day change in the top traders' aggregate net position value per asset — how much smart-money capital flowed into or out of each coin in the last 24h."
+          metric="The day-over-day change in the smart-money wallets' aggregate net position value per asset — how much smart-money capital flowed into or out of each coin in the last 24h."
           insight="Follow the money: sustained inflows into an asset show the cohort building conviction; outflows show them de-risking, often before the crowd reacts."
           isMock
           mockNote="Needs a 2nd snapshot for the day-over-day delta (inflow_usd is null on day 1)."

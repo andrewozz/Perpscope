@@ -1,18 +1,12 @@
--- Staging: top-150-by-30d-PnL trader cohort buffer.
+-- Staging: the smart-money cohort (top-100 by smart_score) with its
+-- risk-adjusted score and component metrics. The whole 2-stage selection +
+-- scoring happens in the extract phase (extractors/smart_money.py), so this
+-- table is ALREADY the final cohort -- staging just cleans types.
 --
--- DEDUPE KEY: (snapshot_date, trader_address) -- back to the "normal" pattern
--- (same shape as stg_hl_asset_ctxs), because unlike candles/F&G, this table
--- is NOT a rolling re-pull of history -- it's a fresh ranking snapshot each
--- day, so a given trader only appears once per snapshot_date under normal
--- operation. We still dedupe defensively (same safety-net reasoning as
--- stg_hl_asset_ctxs).
---
--- NOTE: `in_cohort` and the -500.0 sentinel filter were ALREADY applied
--- back in Python (extractors/hyperliquid.py fetch_leaderboard_cohort) --
--- staging doesn't redo business logic, it just cleans types. That
--- filtering decision lives in extraction because it needed the RAW
--- windowPerformances.allTime.pnl field, which we don't even bother
--- flattening into BigQuery (we only kept the columns we actually use).
+-- DEDUPE KEY: (snapshot_date, trader_address) -- one fresh ranking snapshot per
+-- day; dedupe defensively as elsewhere. See "Smart wallets leaderboard.ipynb"
+-- for the smart_score formulas (Sharpe / profit factor / max drawdown / ROI /
+-- PnL / volume -> percentile-ranked, weighted, confidence-shrunk composite).
 
 with source as (
 
@@ -39,9 +33,20 @@ select
     display_name,
     cast(account_value_usd as float64) as account_value_usd,
     cast(pnl_30d_usd       as float64) as pnl_30d_usd,
+    cast(roi_30d           as float64) as roi_30d,
     cast(volume_30d_usd    as float64) as volume_30d_usd,
-    cast(rank_30d_pnl      as int64)   as rank_30d_pnl,
-    in_cohort   -- already a real BOOL in the raw table (Python set it, not a JSON string), no cast needed
+    cast(alltime_pnl_usd   as float64) as alltime_pnl_usd,
+    cast(alltime_roi       as float64) as alltime_roi,
+    cast(sharpe_30d        as float64) as sharpe_30d,
+    cast(volatility_30d    as float64) as volatility_30d,
+    cast(profit_factor_30d as float64) as profit_factor_30d,
+    cast(max_drawdown_30d  as float64) as max_drawdown_30d,
+    cast(win_rate_days_30d as float64) as win_rate_days_30d,
+    cast(n_obs             as int64)   as n_obs,
+    cast(composite         as float64) as composite,
+    cast(confidence        as float64) as confidence,
+    cast(smart_score       as float64) as smart_score,
+    cast(stage1_rank_pnl   as int64)   as stage1_rank_pnl
 
 from deduped
 where rn = 1

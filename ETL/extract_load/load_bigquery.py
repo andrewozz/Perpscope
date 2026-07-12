@@ -43,14 +43,28 @@ SCHEMAS: dict[str, list[bigquery.SchemaField]] = {
         bigquery.SchemaField("_loaded_at", "TIMESTAMP"),
     ],
     "raw_hl_leaderboard": [
+        # The smart-money cohort (top-100 by smart_score), already selected in
+        # extractors/smart_money.py -- includes the risk-adjusted score + its
+        # component metrics. See "Smart wallets leaderboard.ipynb" for the math.
         bigquery.SchemaField("snapshot_date", "DATE"),
         bigquery.SchemaField("trader_address", "STRING"),
         bigquery.SchemaField("display_name", "STRING"),
         bigquery.SchemaField("account_value_usd", "FLOAT64"),
         bigquery.SchemaField("pnl_30d_usd", "FLOAT64"),
+        bigquery.SchemaField("roi_30d", "FLOAT64"),
         bigquery.SchemaField("volume_30d_usd", "FLOAT64"),
-        bigquery.SchemaField("rank_30d_pnl", "INT64"),
-        bigquery.SchemaField("in_cohort", "BOOL"),
+        bigquery.SchemaField("alltime_pnl_usd", "FLOAT64"),
+        bigquery.SchemaField("alltime_roi", "FLOAT64"),
+        bigquery.SchemaField("sharpe_30d", "FLOAT64"),
+        bigquery.SchemaField("volatility_30d", "FLOAT64"),
+        bigquery.SchemaField("profit_factor_30d", "FLOAT64"),
+        bigquery.SchemaField("max_drawdown_30d", "FLOAT64"),
+        bigquery.SchemaField("win_rate_days_30d", "FLOAT64"),
+        bigquery.SchemaField("n_obs", "INT64"),
+        bigquery.SchemaField("composite", "FLOAT64"),
+        bigquery.SchemaField("confidence", "FLOAT64"),
+        bigquery.SchemaField("smart_score", "FLOAT64"),
+        bigquery.SchemaField("stage1_rank_pnl", "INT64"),
         bigquery.SchemaField("_loaded_at", "TIMESTAMP"),
     ],
     "raw_hl_positions": [

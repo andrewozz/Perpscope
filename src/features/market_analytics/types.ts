@@ -42,13 +42,34 @@ export interface PositioningRow {
   market_cap_rank: number | null;
 }
 
+// One row per SMART-MONEY wallet -- the cohort is the top-100 by a 2-stage
+// risk-adjusted `smart_score` (Sharpe / profit factor / max drawdown / ROI /
+// PnL / volume, percentile-ranked + confidence-shrunk), computed in the extract
+// phase. See ETL/"Smart wallets leaderboard.ipynb" for the full methodology.
 export interface TraderRow {
   trader_address: string;
   snapshot_date: string;
   display_name: string | null;
+  // leaderboard base
   pnl_30d_usd: number;
+  roi_30d: number | null;
   volume_30d_usd: number;
   account_value_usd: number;
+  alltime_pnl_usd: number | null;
+  alltime_roi: number | null;
+  // Stage-2 risk metrics (from the 30d equity curve)
+  sharpe_30d: number | null;
+  volatility_30d: number | null;
+  profit_factor_30d: number | null;
+  max_drawdown_30d: number | null; // negative: 0 = none, -1 = wiped out
+  win_rate_days_30d: number | null;
+  n_obs: number;
+  // composite score
+  composite: number | null;
+  confidence: number | null;
+  smart_score: number | null; // 0..1 -- the ranking metric (client sorts by this)
+  stage1_rank_pnl: number | null; // where they ranked by raw 30d PnL (shows the re-rank effect)
+  // position-derived (current open book)
   n_open_positions: number;
   gross_exposure_usd: number;
   net_exposure_usd: number;
@@ -78,7 +99,7 @@ export interface FearGreedRow {
 export interface MarketData {
   assetMetrics: AssetMetric[];
   positioning: PositioningRow[];
-  traders: TraderRow[];
+  activeTraders: TraderRow[];
   traderPositions: TraderPositionRow[];
   fearGreed: FearGreedRow[];
   asOf: string; // the latest snapshot_date across the facts

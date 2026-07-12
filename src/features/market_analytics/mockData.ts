@@ -44,13 +44,6 @@ export const MOCK_OI_MOVERS: { coin: string; oiChangeUsd: number; priceChange: n
   { coin: 'DOGE', oiChangeUsd: 44_000_000, priceChange: 0.08 },
 ];
 
-// deterministic mock 24h OI change per coin, for the treemap colour only
-export function mockOiChange24h(coin: string): number {
-  let h = 0;
-  for (let i = 0; i < coin.length; i++) h = (h * 31 + coin.charCodeAt(i)) % 1000;
-  return (h / 1000) * 0.3 - 0.15; // -15%..+15%
-}
-
 // Dashboard 3 -------------------------------------------------------------
 // daily net-notional flow among the cohort, top assets by mcap
 export const MOCK_INFLOW: { coin: string; usd: number; pct: number }[] = [

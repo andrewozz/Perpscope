@@ -25,10 +25,10 @@ export function useMarketData(): State {
     let cancelled = false;
     (async () => {
       try {
-        const [assetMetrics, positioning, traders, traderPositions, fearGreed] = await Promise.all([
+        const [assetMetrics, positioning, activeTraders, traderPositions, fearGreed] = await Promise.all([
           getJson<AssetMetric[]>('asset_metrics'),
           getJson<PositioningRow[]>('positioning'),
-          getJson<TraderRow[]>('traders'),
+          getJson<TraderRow[]>('active_traders'),
           getJson<TraderPositionRow[]>('trader_positions'),
           getJson<FearGreedRow[]>('fear_greed'),
         ]);
@@ -37,7 +37,7 @@ export function useMarketData(): State {
         setState({
           loading: false,
           error: null,
-          data: { assetMetrics, positioning, traders, traderPositions, fearGreed, asOf },
+          data: { assetMetrics, positioning, activeTraders, traderPositions, fearGreed, asOf },
         });
       } catch (e) {
         if (cancelled) return;

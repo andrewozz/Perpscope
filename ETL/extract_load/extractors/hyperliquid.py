@@ -22,10 +22,25 @@ def _today() -> str:
     return dt.datetime.now(dt.timezone.utc).date().isoformat()
 
 
-def _post_info(payload: dict) -> dict | list:
-    r = requests.post(config.HL_INFO_URL, json=payload, timeout=config.REQUEST_TIMEOUT)
-    r.raise_for_status()
-    return r.json()
+def _post_info(payload: dict, max_attempts: int = 5) -> dict | list:
+    """POST to /info with exponential backoff on HTTP 429.
+
+    A full daily run makes a lot of HL calls (candles per asset + positions per
+    trader candidate), which can trip Hyperliquid's rate limit. Retrying with
+    backoff on 429 keeps the batch job resilient instead of aborting the whole
+    run on one throttled request.
+    """
+    delay = 2.0
+    for attempt in range(max_attempts):
+        r = requests.post(config.HL_INFO_URL, json=payload, timeout=config.REQUEST_TIMEOUT)
+        if r.status_code == 429:
+            wait = float(r.headers.get("Retry-After", delay))
+            time.sleep(wait)
+            delay = min(delay * 2, 30.0)
+            continue
+        r.raise_for_status()
+        return r.json()
+    raise RuntimeError(f"Hyperliquid /info still rate-limited after {max_attempts} attempts")
 
 
 # --------------------------------------------------------------------------- asset ctxs
@@ -114,79 +129,10 @@ def fetch_all_candles(coins: list[str], delay: float = config.CANDLE_CALL_DELAY_
     return all_records
 
 
-# --------------------------------------------------------------------------- leaderboard
-def fetch_leaderboard_cohort(
-    cohort_size: int = config.COHORT_SIZE,
-    buffer_size: int = config.COHORT_BUFFER,
-) -> list[dict]:
-    """Top `buffer_size` traders by 30-day PnL (leaderboard's `month` window).
-
-    Feeds: fct_trader_daily. `in_cohort` marks the top `cohort_size` (100);
-    the buffer above that lets dbt track day-over-day cohort churn (see
-    DATA_DICTIONARY.md, mart_inflow_outflow edge cases).
-
-    The public leaderboard has ~40k rows and is NOT sorted by 30d PnL, so we
-    pull it in full and re-rank client-side -- there's no server-side filter
-    for "top N by month pnl".
-
-    Rows whose `allTime.pnl` is the exact -500.0 sentinel are excluded BEFORE
-    ranking (see config.LEADERBOARD_ALLTIME_SENTINEL_PNL). Verified live: two
-    of the top-30d-PnL accounts ($900M-$2.3B account value, $200M+ monthly
-    PnL) both carried this exact placeholder value where a real all-time PnL
-    should be -- almost certainly a broken/untracked history (new or migrated
-    wallet), not a genuine trader. Those two accounts don't appear on the
-    official app.hyperliquid.xyz leaderboard UI either, so this filter aligns
-    our cohort with what Hyperliquid's own UI considers a valid ranked trader.
-    """
-    r = requests.get(config.HL_LEADERBOARD_URL, timeout=config.LEADERBOARD_TIMEOUT)
-    r.raise_for_status()
-    payload = r.json()
-    rows = payload.get("leaderboardRows", payload if isinstance(payload, list) else [])
-
-    def month_pnl(row: dict) -> float:
-        windows = dict(row.get("windowPerformances", []))
-        try:
-            return float(windows.get("month", {}).get("pnl", 0))
-        except (TypeError, ValueError):
-            return 0.0
-
-    def month_volume(row: dict) -> float:
-        windows = dict(row.get("windowPerformances", []))
-        try:
-            return float(windows.get("month", {}).get("vlm", 0))
-        except (TypeError, ValueError):
-            return 0.0
-
-    def alltime_pnl(row: dict) -> float:
-        windows = dict(row.get("windowPerformances", []))
-        try:
-            return float(windows.get("allTime", {}).get("pnl", 0))
-        except (TypeError, ValueError):
-            return 0.0
-
-    valid_rows = [
-        row for row in rows
-        if alltime_pnl(row) != config.LEADERBOARD_ALLTIME_SENTINEL_PNL
-    ]
-    ranked = sorted(valid_rows, key=month_pnl, reverse=True)[:buffer_size]
-    snap = _today()
-
-    records = []
-    for i, row in enumerate(ranked):
-        addr = row.get("ethAddress")
-        if not addr:
-            continue
-        records.append({
-            "snapshot_date": snap,
-            "trader_address": addr,
-            "display_name": row.get("displayName"),
-            "account_value_usd": float(row.get("accountValue") or 0),
-            "pnl_30d_usd": month_pnl(row),
-            "volume_30d_usd": month_volume(row),
-            "rank_30d_pnl": i + 1,
-            "in_cohort": (i + 1) <= cohort_size,
-        })
-    return records
+# NOTE: leaderboard candidate selection + the smart-money 2-stage ranking now
+# live in extractors/smart_money.py (fetch_smart_money_cohort). This module keeps
+# the shared HL request helpers (_post_info / _today) plus asset ctxs, candles,
+# and positions.
 
 
 # --------------------------------------------------------------------------- positions

@@ -8,9 +8,11 @@ with cohort as (
     -- STEP 1: who counts as "smart money" today? This is the one
     -- DEFINITIONAL filter allowed in the warehouse (see Design Principle
     -- in DATA_DICTIONARY.md) -- everything else in this file is
-    -- presentation-agnostic (no rank, no LIMIT).
+    -- presentation-agnostic (no rank, no LIMIT). in_cohort is decided once,
+    -- centrally, in int_active_cohort.sql (active traders only -- see that
+    -- file for why), so every Dashboard 3 fact agrees on who's in it.
     select snapshot_date, trader_address
-    from {{ ref('stg_hl_leaderboard') }}
+    from {{ ref('int_active_cohort') }}
     where in_cohort
 
 ),

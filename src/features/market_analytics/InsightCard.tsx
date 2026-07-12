@@ -42,7 +42,7 @@ export default function InsightCard({
         )}
       </div>
 
-      <div className="flex-1 px-5 py-4">{children}</div>
+      <div className="min-h-0 flex-1 px-5 py-4">{children}</div>
 
       <div className="space-y-2 border-t border-slate-800/70 bg-slate-950/30 px-5 py-3.5">
         <p className="text-xs leading-relaxed text-slate-400">
