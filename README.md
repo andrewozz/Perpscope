@@ -39,7 +39,9 @@ The flagship feature. An automated **ELT data pipeline** extracts real-time bloc
 
 
 ![Market Structure](assets/market_analytics_1.png)
+
 ![Capital Rotation using OI](assets/market_analytics_2.png)
+
 ![Smart Money Analytics](assets/market_analytics_3.png)
 
 
