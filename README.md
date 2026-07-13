@@ -36,13 +36,12 @@ The flagship feature. An automated **ELT data pipeline** extracts real-time bloc
 
   *Actionable insight:* surfaces skilled, risk-controlled traders instead of lucky whales — and when several independently top-ranked wallets crowd into the same asset and direction, that convergence is the highest-conviction signal on the dashboard.
 
-<!-- Add Market Analytics screenshots here, e.g.:
-![Market Analytics — Market Structure](assets/market_analytics_market_structure.png)
-![Market Analytics — Open Interest](assets/market_analytics_open_interest.png)
-![Market Analytics — Smart Money](assets/market_analytics_smart_money.png)
--->
 
-![BTC Market Regime](assets/regime.png)
+
+![Market Structure](assets/market_analytics_1.png)
+![Capital Rotation using OI](assets/market_analytics_2.png)
+![Smart Money Analytics](assets/market_analytics_3.png)
+
 
 ### The ETL pipeline
 
