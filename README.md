@@ -32,7 +32,7 @@ The flagship feature. An automated **ELT data pipeline** extracts real-time bloc
 
   *Actionable insight:* shows where a squeeze can cascade and where new leverage is genuinely flowing in — often ahead of a move. OI up + price up = new longs; OI up + price down = new shorts building; rising OI on flat price = a coiled spring.
 
-![Capital Rotation using OI](assets/market_analytics_2.png)
+![Capital Rotation](assets/market_analytics_2.png)
 
 
 **3 · Smart-Money Analytics — what are the best wallets actually doing?**
