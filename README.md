@@ -22,6 +22,9 @@ The flagship feature. An automated **ELT data pipeline** extracts real-time bloc
 
   *Actionable insight:* sets the trader's baseline directional bias — trend-follow and hold longer when Bull/Accumulation dominates; take profit faster, size down and favour shorts as Bear/Capitulation probability rises. A rising second-place regime is an early warning of a shift before price confirms it.
 
+![Market Structure](assets/market_analytics_1.png)
+
+
 **2 · Open Interest & Capital Rotation — where is leverage concentrated and moving?**
 - **OI Dominance Treemap** — each asset's share of total open interest (tile size) and its own 24h OI change (colour).
 - **Top OI Increases (7d)** — where the most fresh leveraged capital entered this week, paired with price direction.
@@ -29,18 +32,15 @@ The flagship feature. An automated **ELT data pipeline** extracts real-time bloc
 
   *Actionable insight:* shows where a squeeze can cascade and where new leverage is genuinely flowing in — often ahead of a move. OI up + price up = new longs; OI up + price down = new shorts building; rising OI on flat price = a coiled spring.
 
+![Capital Rotation using OI](assets/market_analytics_2.png)
+
+
 **3 · Smart-Money Analytics — what are the best wallets actually doing?**
 - **Smart-Money Leaderboard** — the top 100 wallets ranked not by raw PnL but by a **2-stage risk-adjusted score** (Sharpe, profit factor, max drawdown, ROI), with each wallet's live open positions on hover.
 - **Net Positioning by Asset** — the share of the cohort long / short / flat per asset.
 - **Smart-Money Flows (24h)** — day-over-day change in the cohort's net exposure per asset (capital building vs de-risking).
 
   *Actionable insight:* surfaces skilled, risk-controlled traders instead of lucky whales — and when several independently top-ranked wallets crowd into the same asset and direction, that convergence is the highest-conviction signal on the dashboard.
-
-
-
-![Market Structure](assets/market_analytics_1.png)
-
-![Capital Rotation using OI](assets/market_analytics_2.png)
 
 ![Smart Money Analytics](assets/market_analytics_3.png)
 
