@@ -43,7 +43,7 @@ export default function MarketAnalyticsPage() {
 
       {!loading && !error && data && (
         <div className="space-y-10">
-          <MarketStructureSection fearGreed={data.fearGreed} />
+          <MarketStructureSection fearGreed={data.fearGreed} assetMetrics={data.assetMetrics} />
           <OpenInterestSection assetMetrics={data.assetMetrics} />
           <SmartMoneySection
             activeTraders={data.activeTraders}

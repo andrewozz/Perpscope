@@ -2,7 +2,7 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'rec
 import InsightCard from './InsightCard';
 import BtcRegimeCard from './BtcRegimeCard';
 import { MOCK_HOTTEST, MOCK_STRONGEST, type RankedCoin } from './mockData';
-import { signedPctFrac, type FearGreedRow } from './types';
+import { signedPctFrac, type AssetMetric, type FearGreedRow } from './types';
 
 function fngColor(v: number): string {
   if (v < 25) return '#ef4444';
@@ -40,7 +40,7 @@ function FearGreedGauge({ value, classification }: { value: number; classificati
   const [mx, my] = pointAt(value);
   return (
     <div className="flex flex-col items-center">
-      <svg viewBox="0 0 200 128" className="w-full max-w-[280px]">
+      <svg viewBox="0 0 200 128" className="w-full">
         {ZONES.map((z) => (
           <path
             key={z.from}
@@ -60,9 +60,9 @@ function FearGreedGauge({ value, classification }: { value: number; classificati
           {classification}
         </text>
       </svg>
-      <div className="mt-1 flex w-full max-w-[280px] justify-between px-1 text-[10px] text-slate-500">
-        <span>Extreme Fear</span>
-        <span>Extreme Greed</span>
+      <div className="mt-1 flex w-full justify-between px-1 text-[10px] text-slate-500">
+        <span>Fear</span>
+        <span>Greed</span>
       </div>
     </div>
   );
@@ -95,9 +95,21 @@ function RankedBars({ rows, positive }: { rows: RankedCoin[]; positive?: boolean
   );
 }
 
-export default function MarketStructureSection({ fearGreed }: { fearGreed: FearGreedRow[] }) {
+export default function MarketStructureSection({
+  fearGreed,
+  assetMetrics,
+}: {
+  fearGreed: FearGreedRow[];
+  assetMetrics: AssetMetric[];
+}) {
   const latest = fearGreed[fearGreed.length - 1];
   const history = fearGreed.slice(-90).map((d) => ({ date: d.date, value: d.fng_value }));
+
+  const hottest: RankedCoin[] = assetMetrics
+    .filter((m) => m.vol_change_24h_pct != null && !m.is_stablecoin)
+    .sort((a, b) => b.vol_change_24h_pct! - a.vol_change_24h_pct!)
+    .slice(0, 5)
+    .map((m) => ({ coin: m.coin, value: m.vol_change_24h_pct! }));
 
   return (
     <section>
@@ -119,40 +131,44 @@ export default function MarketStructureSection({ fearGreed }: { fearGreed: FearG
           metric="A 0–100 composite of volatility, momentum, volume, social and dominance signals. 0 = extreme fear (panic selling), 100 = extreme greed (euphoria)."
           insight="A contrarian gauge: extreme fear often marks capitulation lows (accumulation zones), extreme greed marks froth where risk of a pullback is highest."
         >
-          <FearGreedGauge value={latest.fng_value} classification={latest.fng_classification} />
-          <div className="mt-3">
-            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">Last 90 days</p>
-            <ResponsiveContainer width="100%" height={90}>
-              <AreaChart data={history} margin={{ left: 0, right: 4, top: 4, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="fngFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="date" hide />
-                <YAxis domain={[0, 100]} hide />
-                <Tooltip
-                  contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, fontSize: 12 }}
-                  labelStyle={{ color: '#cbd5e1' }}
-                  formatter={(v) => [`${v}`, 'F&G']}
-                />
-                <Area type="monotone" dataKey="value" stroke="#38bdf8" strokeWidth={1.5} fill="url(#fngFill)" />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="flex items-center gap-4">
+            <div className="w-[38%] shrink-0 px-2 py-1">
+              <FearGreedGauge value={latest.fng_value} classification={latest.fng_classification} />
+            </div>
+            <div className="w-[60%] min-w-0">
+              <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">Last 90 days</p>
+              <ResponsiveContainer width="100%" height={140}>
+                <AreaChart data={history} margin={{ left: 0, right: 4, top: 4, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="fngFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.4} />
+                      <stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="date" hide />
+                  <YAxis domain={[0, 100]} hide />
+                  <Tooltip
+                    contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, fontSize: 12 }}
+                    labelStyle={{ color: '#cbd5e1' }}
+                    formatter={(v) => [`${v}`, 'F&G']}
+                  />
+                  <Area type="monotone" dataKey="value" stroke="#38bdf8" strokeWidth={1.5} fill="url(#fngFill)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </InsightCard>
 
-        {/* Hottest — mock */}
+        {/* Hottest — real once a 2nd daily snapshot exists */}
         <InsightCard
           title="Hottest Coins Today"
           subtitle="Top 5 by 24h volume surge"
           metric="Coins with the largest 24-hour jump in traded volume vs the prior day — where attention and activity is flooding in right now."
           insight="A volume spike precedes big moves; rising volume + rising price = a real breakout worth chasing, a spike with flat price = churn to avoid."
-          isMock
+          isMock={hottest.length === 0}
           mockNote="Needs a 2nd daily snapshot to compute the 24h change (vol_change_24h_pct is null on day 1)."
         >
-          <RankedBars rows={MOCK_HOTTEST} positive />
+          <RankedBars rows={hottest.length > 0 ? hottest : MOCK_HOTTEST} positive />
         </InsightCard>
 
         {/* Strongest — mock */}

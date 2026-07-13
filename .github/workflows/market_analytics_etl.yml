@@ -1,0 +1,54 @@
+name: Market Analytics ETL
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # 06:00 UTC daily (after CoinGecko/HL have a full prior day)
+  workflow_dispatch: {}    # manual "Run workflow" button for testing
+
+permissions:
+  contents: write   # needed to commit the refreshed JSON exports back to the repo
+
+jobs:
+  etl:
+    runs-on: ubuntu-latest
+    env:
+      GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+      GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/sa_key.json
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Write service-account key from secret
+        run: echo '${{ secrets.GCP_SA_KEY }}' > "$GOOGLE_APPLICATION_CREDENTIALS"
+
+      - name: Install deps
+        run: |
+          pip install -r ETL/extract_load/requirements.txt
+          pip install dbt-bigquery
+
+      - name: Extract + Load
+        run: python -m extract_load.main
+        working-directory: ETL
+
+      - name: Transform (dbt)
+        run: dbt build --project-dir dbt --profiles-dir dbt
+        working-directory: ETL
+
+      - name: Export marts -> JSON
+        run: python -m export.export_marts
+        working-directory: ETL
+
+      - name: Remove service-account key
+        if: always()
+        run: rm -f "$GOOGLE_APPLICATION_CREDENTIALS"
+
+      - name: Commit refreshed JSON
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/market/*.json
+          git diff --cached --quiet && echo "No data changes, skipping commit." || git commit -m "chore: daily market analytics data refresh"
+          git push
