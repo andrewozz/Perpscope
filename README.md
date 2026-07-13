@@ -72,8 +72,6 @@ flowchart LR
 | **5 · Orchestrate** | A **GitHub Actions** cron runs the whole pipeline daily and unattended, then auto-commits the refreshed data export back to the repo. |
 | **6 · Serve** | The marts are exported to static JSON that the **React app fetches** client-side (keyless, cached) — so every visit shows fresh data with no live warehouse queries. Power BI can also connect live to the same marts. |
 
-> A detailed, phase-by-phase build manual with full SQL lives in [`ETL/README.md`](ETL/README.md).
-
 ---
 
 ## Feature 2 — Funding Rate Arbitrage Scanner
