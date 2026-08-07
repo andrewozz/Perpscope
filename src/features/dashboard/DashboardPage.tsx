@@ -24,7 +24,7 @@ export default function DashboardPage() {
 
       {loading && (
         <div className="flex h-24 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/40">
-          <p className="text-sm text-slate-500">Loading live DEX data&hellip;</p>
+          <p className="text-sm text-slate-500">Loading live DEX data now&hellip;</p>
         </div>
       )}
 
